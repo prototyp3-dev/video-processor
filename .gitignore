@@ -1,0 +1,7 @@
+.sunodo
+.standalone
+.venv
+__pycache__
+*.avi
+*.mp4
+*.webm

@@ -1,0 +1,3 @@
+requests == 2.31.0
+https://raw.githubusercontent.com/felipefg/pip-wheels-riscv/main/wheels/scipy/scipy-1.10.1-cp310-cp310-linux_riscv64.whl
+#cartesi @ git+https://github.com/prototyp3-dev/python-cartesi@aedef5b38f6d29b968312170e7894e47c16ce4d9
