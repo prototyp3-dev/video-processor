@@ -41,7 +41,7 @@ make build
 make install
 ```
 
-Initialize node in testnet environment
+Initialize node in [arabica](https://docs.celestia.org/nodes/arabica-devnet) testnet environment. See [mocha](https://docs.celestia.org/nodes/mocha-testnet) for mocha testnet.
 
 ```shell
 celestia light init --p2p.network arabica
@@ -51,25 +51,25 @@ It will create a key. Write down the key and request tokens on the [faucet or di
 
 ## Sending and retrieving data blob from celestia 
 
-You should start the ligh node in [arabica](https://docs.celestia.org/nodes/arabica-devnet#bridge-full-and-light-nodes) network. See [mocha](https://docs.celestia.org/nodes/mocha-testnet) for mocha testnet.
+You should start the light node:
 
 ```shell
 celestia light start --core.ip consensus-validator.celestia-arabica-10.com --p2p.network arabica
 ```
 
-Save the celestia node store n a variable:
+Save the celestia node store in a variable:
 
 ```shell
 NODE_STORE=$HOME/.celestia-light-arabica-10
 ```
 
-Convert the video to hex to input it to celestia (Obs: celestia network limits the data blob). Run (change `<video>` to your video):
+Convert the video to hex to input it to celestia (note: celestia network limits the data blob). Run (change `<video>` to your video):
 
 ```shell
 videob64=$(tr -d '\n'  <<< $(base64 <video> ) )
 ```
 
-Get the namespace for celestia (based on rolluped CM hash):
+Get the namespace for celestia (based on rolluped Cartesi Machine hash):
 
 ```shell
 namespace=0x$(./video_processor.sh hash -b 10 -x r)
