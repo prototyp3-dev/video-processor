@@ -63,13 +63,13 @@ Save the celestia node store in a variable:
 NODE_STORE=$HOME/.celestia-light-arabica-10
 ```
 
-Convert the video to hex to input it to celestia (note: celestia network limits the data blob). Run (change `<video>` to your video):
+Convert the video to base 64 to input it to celestia (note: celestia network limits the data blob). Change `<video>` to your video and run:
 
 ```shell
 videob64=$(tr -d '\n'  <<< $(base64 <video> ) )
 ```
 
-Get the namespace for celestia (based on rolluped Cartesi Machine hash):
+Optionally, get the namespace for celestia based on rolluped Cartesi Machine hash (use `-x t` for template cartesi machine):
 
 ```shell
 namespace=0x$(./video_processor.sh hash -b 10 -x r)
@@ -123,7 +123,7 @@ The output should be something like
 }
 ```
 
-As a final step, you should save the data to a file to send to the Cartesi Machine for processing. For that you might have to convert it from base 64:
+As a final step, you should save the data to a file to send to the Cartesi Machine for processing. For that you have to convert it from base 64:
 
 ```shell
 result=$(celestia blob get $height $namespace $commitment --node.store $NODE_STORE)
