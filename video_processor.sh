@@ -14,11 +14,6 @@ init () {
     imageidfile=$basepath/imageid
 
     su="--env USER=$(id -nu) --env GROUP=$(id -g) --env UID=$(id -u) --env GID=$(id -g)"
-
-    sqsimage=$(docker image ls -q sws:$sqsversion)
-    if [ -z $sqsimage ]; then
-        build_ws
-    fi
 }
 
 read_image_info () {
@@ -37,8 +32,34 @@ read_image_info () {
 }
 
 build_ws () {
-    docker buildx build --load . --target sunodo-workspace -t sws:$sqsversion
+    force=
+    while getopts f flag
+    do
+        case "${flag}" in
+            f) force=1;;
+        esac
+    done
+
     sqsimage=$(docker image ls -q sws:$sqsversion)
+    if [ -z $sqsimage ] || [ ! -z $force ]; then
+        docker buildx build --load . --target sunodo-workspace -t sws:$sqsversion
+    fi
+}
+
+build_utils () {
+    force=
+    while getopts f flag
+    do
+        case "${flag}" in
+            f) force=1;;
+        esac
+    done
+
+    cwbimage=$(docker image ls -q cwb:$sqsversion)
+    if [ -z $cwbimage ] || [ ! -z $force ]; then
+        docker buildx build --load . --target celestia-wo-builder -t cwb:$sqsversion
+    fi
+    docker run --rm $su --volume $PWD/utils:/mnt cwb:$sqsversion find . -executable -type f -exec cp {} /mnt/celestia_blob_wo \;
 }
 
 build_dapp () {
@@ -91,17 +112,11 @@ build_template () {
             --flash-drive=label:root,filename:/mnt/${imagebase}.ext2 \
             --flash-drive="label:input,length:1<<24" \
             --flash-drive="label:output,length:1<<24,shared" \
-            --final-hash -- 'cd /opt/cartesi/dapp; PYTHONPATH=/opt/venv/lib/python3.10/site-packages:/usr/lib/python3/dist-packages python3 process_video.py -g data/glasses.png -i /mnt/input/video $(cat /mnt/input/fpsarg) -o /mnt/output/'"$outfile"
+            --final-hash -- 'cd /opt/cartesi/dapp; PYTHONPATH=/opt/venv/lib/python3.10/site-packages:/usr/lib/python3/dist-packages python3 process_video.py -l -g data/glasses.png -i /mnt/input/video $(cat /mnt/input/fpsarg) -o /mnt/output/'"$outfile"
 
 }
 
 process () {
-
-    if [ ! -f $basepath/${imagebase}.ext2 ]; then
-        echo "cm image not found. Please build first"
-        exit 1
-    fi
-
     process_type=t
     while getopts i:o:f:x: flag
     do
@@ -145,24 +160,30 @@ process () {
         *) inpath=$PWD/$infile ;;
     esac
     
+    sqsimage=$(docker image ls -q sws:$sqsversion)
+    if [ -z $sqsimage ]; then
+        echo "Workspace image not found. Please build it first"
+        exit 1
+    fi
     case "${process_type}" in
         t)
             read_image_info
-            echo $ramsize $inpath $fpsarg
             if [ ! -d $basepath/${imagebase} ]; then
-                build_template
+                echo "cm image not found. Please build it first"
+                exit 1
             fi
-            docker container run --rm $su --volume $PWD/$basepath:/mnt --volume $inpath:$inpath $sqsimage \
-                bash -c "source video_processor.sh && _process -r $ramsize -i $inpath $fpsarg"
-            mv $basepath/$outfile $videooutfile
+            docker container run --rm -it $su --volume $PWD/$basepath:/mnt --volume $inpath:$inpath $sqsimage \
+                bash -c "source video_processor.sh && _process -r $ramsize -i $inpath $fpsarg" && \
+                mv $basepath/$outfile $videooutfile
             ;;
         r)
             if [ ! -d $basesunodopath/${sunodoimagebase} ]; then
-                build_dapp
+                echo "cm image not found. Please build it first"
+                exit 1
             fi
             docker container run --rm $su --volume $PWD/$basesunodopath:/mnt --volume $inpath:$inpath $sqsimage \
-                bash -c "source video_processor.sh && _process_rollup -i $inpath $fpsarg"
-            mv $basesunodopath/$outfile $videooutfile
+                bash -c "source video_processor.sh && _process_rollup -i $inpath $fpsarg" && \
+                mv $basesunodopath/$outfile $videooutfile
             ;;
         * )
             echo "Invalid process type"
@@ -325,11 +346,21 @@ EOF
 }
 
 sws_shell () {
-    docker container run --rm -it $su --volume $PWD/$basepath:/mnt sws:0.0.1 bash
+    sqsimage=$(docker image ls -q sws:$sqsversion)
+    if [ -z $sqsimage ]; then
+        echo "Workspace image not built, please built with build-ws command"
+        exit 1
+    fi
+    docker container run --rm -it $su --volume $PWD/$basepath:/mnt sws:$sqsversion bash
 }
 
 shell () {
-    docker container run --rm -it $su --volume $PWD/$basepath:/mnt sws:0.0.1 cartesi-machine \
+    sqsimage=$(docker image ls -q sws:$sqsversion)
+    if [ -z $sqsimage ]; then
+        echo "Workspace image not built, please built with build-ws command"
+        exit 1
+    fi
+    docker container run --rm -it $su --volume $PWD/$basepath:/mnt sws:$sqsversion cartesi-machine \
         --rollup \
         --ram-length=$ramsize \
         --flash-drive=label:root,filename:/mnt/image.ext2 \
@@ -364,7 +395,6 @@ trunc_hash () {
             exit 1
             ;;
     esac
-    echo
     echo $(xxd -p -c $bytes $hashfile | head -1)
 
 }
@@ -377,7 +407,13 @@ main () {
     case $1 in
         "build-ws")
             echo "Building workstation"
-            build_ws
+            shift 1;
+            build_ws "$@"
+            ;;
+        "build-utils")
+            echo "Building utils"
+            shift 1;
+            build_utils "$@"
             ;;
         "build-dapp")
             echo "Building DAPP"
@@ -403,7 +439,6 @@ main () {
             shell
             ;;
         "hash" )
-            echo "Hash: truncated CM hash"
             shift 1;
             trunc_hash "$@"
             ;;
@@ -424,6 +459,7 @@ else
     unset build_dapp
     unset build_template
     unset build_ws
+    unset build_utils
     unset trunc_hash
 fi
 

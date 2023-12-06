@@ -17,6 +17,7 @@ logger.info(f"HTTP rollup_server url is {rollup_server}")
 # Initialization
 
 vp = VideoProcessor()
+vp.logging = True
 glasses_path = "data/glasses.png"
 
 max_output_size = 1048567 # (2097152-17)/2

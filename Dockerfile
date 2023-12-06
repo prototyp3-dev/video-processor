@@ -5,7 +5,7 @@ FROM sunodo/sdk:${SUNODO_SDK_VERSION} as sunodo-workspace
 
 RUN <<EOF
 apt-get update
-apt-get install -y --no-install-recommends e2tools xxd jq
+apt-get install -y --no-install-recommends e2tools xxd jq wget
 rm -rf /var/lib/apt/lists/*
 EOF
 
@@ -47,6 +47,21 @@ encode_input()
 ' > encode_input.lua
 chmod +x encode_input.lua
 EOF
+
+FROM sunodo-workspace as celestia-wo-builder
+
+WORKDIR /opt/build
+
+ARG GOVERSION=1.21.2
+
+RUN wget https://go.dev/dl/go${GOVERSION}.linux-$(dpkg --print-architecture).tar.gz && \
+    tar -C /usr/local -xzf go${GOVERSION}.linux-$(dpkg --print-architecture).tar.gz
+
+ENV PATH=/usr/local/go/bin:${PATH}
+
+COPY utils .
+
+RUN go build celestia_blob_wo.go
 
 FROM --platform=linux/riscv64 cartesi/python:3.10-slim-jammy as base
 

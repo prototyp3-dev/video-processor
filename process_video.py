@@ -21,8 +21,9 @@ if __name__ == "__main__":
     play = False
     remove = False
     debug = False
+    logging = False
 
-    opts, args = getopt.getopt(sys.argv[1:],"hi:o:f:g:prd",["help","input=","output=","fps=","glasses=","play","rm","debug"])
+    opts, args = getopt.getopt(sys.argv[1:],"hi:o:f:g:prdl",["help","input=","output=","fps=","glasses=","play","rm","debug","logging"])
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             print(f"{sys.argv[0]} --input <inputfile> [options]")
@@ -42,6 +43,8 @@ if __name__ == "__main__":
             play = True
         elif opt in ("-d","--debug"):
             debug = True
+        elif opt in ("-l","--logging"):
+            logging = True
     
     if inputfile is None:
         print(f"Missing input video")
@@ -51,6 +54,9 @@ if __name__ == "__main__":
 
     if debug:
         vp.debug = True
+
+    if logging:
+        vp.logging = True
 
     # process video
     outpath = vp.process_video(inputfile,glasses_path,fps)

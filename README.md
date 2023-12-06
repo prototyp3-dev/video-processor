@@ -66,7 +66,8 @@ NODE_STORE=$HOME/.celestia-light-arabica-10
 Convert the video to base 64 to input it to celestia (note: celestia network limits the data blob). Change `<video>` to your video and run:
 
 ```shell
-videob64=$(tr -d '\n'  <<< $(base64 <video> ) )
+videob64_path=$(mktemp)
+tr -d '\n'  <<< $(base64 <video> ) > $videob64_path
 ```
 
 Optionally, get the namespace for celestia based on rolluped Cartesi Machine hash (use `-x t` for template cartesi machine):
@@ -78,10 +79,11 @@ namespace=0x$(./video_processor.sh hash -b 10 -x r)
 Finally, send the video to celestia
 
 ```shell
-celestia blob submit \
+submit_result=$(./utils/celestia_blob_wo submit \
     $namespace \
-    $videob64 \
-    --node.store $NODE_STORE
+    $videob64_path \
+    --node.store $NODE_STORE)
+echo $submit_result
 ```
 
 It will display the output in the form:
@@ -98,16 +100,15 @@ It will display the output in the form:
 Set the `height` and `commitment`
 
 ```shell
-height=<height>
-commitment=<commitment>
+height=$(jq -r '.result.height' <<< $submit_result)
+commitment=$(jq -r '.result.commitment' <<< $submit_result)
 ```
 
 With the `height` and `commitment` and `namespace` you can obtain the data blob again:
 
 ```shell
-celestia blob get \
-    $height $namespace $commitment \
-    --node.store $NODE_STORE
+result=$(celestia blob get $height $namespace $commitment --node.store $NODE_STORE)
+echo $result | jq | more
 ```
 
 The output should be something like
@@ -126,7 +127,6 @@ The output should be something like
 As a final step, you should save the data to a file to send to the Cartesi Machine for processing. For that you have to convert it from base 64:
 
 ```shell
-result=$(celestia blob get $height $namespace $commitment --node.store $NODE_STORE)
 data_base64=$(jq -r '.result.data' <<< $result)
 printf '%s' $data_base64 | base64 -d > video
 ```

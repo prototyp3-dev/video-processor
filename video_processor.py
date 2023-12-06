@@ -4,6 +4,7 @@ import numpy as np
 import tempfile
 import time
 import os
+import logging
 
 class VideoProcessor:
     
@@ -47,6 +48,11 @@ class VideoProcessor:
         self.animation_seconds = 2
 
         self.debug = False
+        self.logging = False
+
+        logging.basicConfig(level="INFO")
+        self.logger = logging.getLogger(__name__)
+
 
     def insert_glasses(frame,glasses,frame_disp = None):
         return VideoProcessor().insert_glasses(frame,glasses,curr_frame)
@@ -142,6 +148,9 @@ class VideoProcessor:
         if frame_rate is None:
             frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
 
+        if self.logging:
+            self.logger.info(f"Processing {frame_width}x{frame_height} video with {frame_rate} fps")
+
         extension = self.extension
         fourcc = self.fourcc
         h = 0 #int(cap.get(cv2.CAP_PROP_FOURCC))
@@ -157,8 +166,16 @@ class VideoProcessor:
         
         # Check if camera opened successfully
         if (cap.isOpened()== False): 
-            print("Error opening video stream or file")
+            if self.logging:
+                self.logger.info("Error opening video stream or file")
+            else:
+                print("Error opening video stream or file")
+            return None
 
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        countdown = 0
+        if self.logging:
+            self.logger.info("Dropping glasses...")
         # Read until video is completed
         curr_frame = 0
         while(cap.isOpened()):
@@ -172,6 +189,22 @@ class VideoProcessor:
             curr_frame += 1
             # cv2.imshow('Video',processed_frame)
             # if cv2.waitKey(5) & 0xFF == ord('q'): break
+            if self.logging:
+                if frame_disp < self.animation_seconds:
+                    if curr_frame >= self.animation_seconds * frame_rate * 0.9 and countdown == 3:
+                        self.logger.info(f"BAM. Glasses on!")
+                        countdown = 4
+                    elif curr_frame > self.animation_seconds * frame_rate * 0.66 and countdown == 2: 
+                        self.logger.info(f"1...")
+                        countdown = 3
+                    elif curr_frame > self.animation_seconds * frame_rate * 0.33 and countdown == 1:
+                        self.logger.info(f"2...")
+                        countdown = 2
+                    elif curr_frame > 0 and countdown == 0:
+                        self.logger.info(f"3...")
+                        countdown = 1
+                elif curr_frame % int(frame_rate) == 0:
+                    self.logger.info(f"{int(100*curr_frame/total_frames)} %")
 
         # When everything done, release the video capture object
         cap.release()
@@ -179,6 +212,10 @@ class VideoProcessor:
 
         # Closes all the frames
         cv2.destroyAllWindows()
+
+        if self.logging:
+            file_stats = os.stat(tmp)
+            self.logger.info("Finished processing video. Resulting video has {file_stats.st_size} bytes")
 
         return tmp
 
