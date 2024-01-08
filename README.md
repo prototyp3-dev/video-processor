@@ -6,6 +6,24 @@ Cartesi Rollups version: 1.0.x
 
 This DApp is a simple example to push and pull data from Celestia and then process in a cartesi dapp.
 
+## Why Cartesi and Celestia?
+
+There are severe limitations on the kind of computations you can do on the blockchain in L1s like Ethereum and those are due to the very expensive and limited amount of data you can input and the expensive, limited and non-ergonomical processing you can perform.
+
+About the data, at the time of writting, the estimated cost on Ethereum would be a steep $1000 cost to send a 1MB video as calldata, so Celestia enables what would otherwise be prohibitely expensive data inputs for applications.
+On the processing side, the Cartesi Machine allows deterministic use of complex libraries like OpenCV effortlessly, emulating RISC-V ISA supporting Linux and also enables computations that are multiple orders of magnitude larger than what´s feasible on an L1.
+
+Processing a 1.4MB video sample (https://youtu.be/ypproaYVOxE?feature=shared&t=153) required 213,811,019,324 RISC-V cycles. Considering that currently the max gas on an Ethereum block is 30M gas and the cheapest useful OPCODE is 3 gas (ADD) the best case is 10M operations per block on Ethereum. This translates to approximately 21,381 Ethereum blocks (RISC-V cycles divided by max operations per block on Ethereum). To complete this video processing task, it would take around 71 hours on Ethereum, with blocks being generated every 12 seconds (Number of blocks needed multiplied by time between blocks).
+On the cost side, multiplying the number of blocks (21,381) by the gas limit per block (30 million), the current gas price (32 gwei), and dividing to account the number of decimals in ETH (18), we get 20,525.76 ETH (21381×30×10^6×32×10^9÷10^18). At the ETH price of 2227.04 USD, the cost would be over 45M USD!
+
+## What could this lead to?
+
+- An application to prove you're the first to process a specific video in a distinctive manner, authenticated by a unique hash for that particular state
+- A sovereign rollup implementatation in which state evolves by adding more processing steps to the updated video.
+- Some other interesting use a smart developer could come up with :)
+
+# Executing
+
 ## Requirements
 
 You must have docker, git and go installed on your system. Besides, you need to install:
